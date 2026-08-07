@@ -1,0 +1,37 @@
+# Local development stack for github-copilot-metrics-dashboard.
+# Brings up Postgres + Adminer. The web app and collector run on the host.
+# Start: pnpm infra:up    Stop: pnpm infra:down    Logs: pnpm infra:logs
+
+name: ghcp-metrics-dashboard
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ghcp
+      POSTGRES_PASSWORD: ghcp
+      POSTGRES_DB: ghcp_metrics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghcp -d ghcp_metrics"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

@@ -1,0 +1,38 @@
+name: github-copilot-metrics-dashboard
+metadata:
+  template: copilot-metrics-dashboard-azd@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+services:
+  web:
+    project: .
+    host: containerapp
+    language: js
+    docker:
+      path: infra/docker/Dockerfile.web
+      context: .
+  collector:
+    project: .
+    host: containerapp
+    language: js
+    docker:
+      path: infra/docker/Dockerfile.collector
+      context: .
+
+hooks:
+  preprovision:
+    shell: sh
+    run: ./infra/hooks/preprovision.sh
+    interactive: false
+  postprovision:
+    shell: sh
+    run: ./infra/hooks/postprovision.sh
+    interactive: false
+  postdeploy:
+    shell: sh
+    run: ./infra/hooks/postdeploy.sh
+    interactive: false
