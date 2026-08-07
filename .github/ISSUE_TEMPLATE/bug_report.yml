@@ -1,0 +1,76 @@
+name: Bug report
+description: Report a reproducible problem in Copilot Metrics Dashboard.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Copilot Metrics Dashboard. Do not include secrets, raw customer data, private org names, or screenshots with sensitive information.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Overview
+        - Cost & Spend
+        - Adoption
+        - Code Generation
+        - Pull Requests
+        - Calculator
+        - Settings
+        - Collector / ingestion
+        - Database / migrations
+        - Docs / specs
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Setup mode
+      options:
+        - Demo mode
+        - Real-data mode
+        - Both
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug and the expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS, Node.js version, pnpm version, browser, branch/commit, and relevant setup details.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove tokens, org names, user logins, database URLs, and customer data before attaching.
+      render: shell
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I have removed secrets, credentials, raw customer data, and sensitive screenshots.
+          required: true

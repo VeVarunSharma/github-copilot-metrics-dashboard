@@ -1,0 +1,5 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": ["src/components/charts/evil/**/*"],
+  "rules": { "@next/next/no-html-link-for-pages": "off" }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "github-copilot-metrics-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OSS dashboard + ingestion tool for GitHub Copilot usage metrics. Translates usage to time saved & dollars saved, correlates with delivery (PRs, issues), and tracks Copilot spend.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microsoft/github-copilot-metrics-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/microsoft/github-copilot-metrics-dashboard/issues"
+  },
+  "homepage": "https://github.com/microsoft/github-copilot-metrics-dashboard#readme",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "ci:p0": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm smoke:p0",
+    "dev": "pnpm -r --parallel --stream dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @ghcp-dash/db generate",
+    "db:migrate": "pnpm --filter @ghcp-dash/db migrate",
+    "db:bootstrap": "pnpm db:migrate && pnpm db:seed",
+    "db:seed": "pnpm --filter @ghcp-dash/db seed",
+    "db:seed:demo": "pnpm --filter @ghcp-dash/db seed:demo",
+    "db:seed:clear-demo": "pnpm --filter @ghcp-dash/db seed:clear-demo",
+    "db:seed:reset": "pnpm --filter @ghcp-dash/db seed:reset",
+    "db:studio": "pnpm --filter @ghcp-dash/db studio",
+    "collect": "pnpm --filter @ghcp-dash/collector start",
+    "collect:backfill": "pnpm --filter @ghcp-dash/collector backfill",
+    "restore:pitr": "scripts/restore/postgres-pitr-restore.sh",
+    "restore:backfill": "scripts/restore/bronze-replay-backfill.sh",
+    "restore:validate": "scripts/restore/validate-restore.sh",
+    "smoke:migrate": "pnpm db:migrate",
+    "smoke:collector-config": "pnpm --filter @ghcp-dash/collector check:config",
+    "smoke:demo:verify": "pnpm --filter @ghcp-dash/db smoke:demo && pnpm --filter @ghcp-dash/web smoke:demo",
+    "smoke:demo": "pnpm smoke:migrate && pnpm db:seed:demo && pnpm smoke:demo:verify",
+    "smoke:p0": "pnpm smoke:collector-config && pnpm smoke:demo",
+    "web": "pnpm --filter @ghcp-dash/web dev",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.5.10": ">=8.5.10"
+    }
+  }
+}

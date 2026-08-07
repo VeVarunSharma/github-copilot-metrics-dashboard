@@ -1,0 +1,10 @@
+# Starter CODEOWNERS for Copilot Metrics Dashboard.
+# Maintainers: replace this placeholder team with the actual owning GitHub team(s)
+# before enforcing required code owner reviews.
+
+* @microsoft/copilot-metrics-dashboard-maintainers
+
+# Optional finer-grained ownership placeholders for high-sensitivity areas.
+/specs/ @microsoft/copilot-metrics-dashboard-maintainers
+/infra/ @microsoft/copilot-metrics-dashboard-maintainers
+/packages/value/ @microsoft/copilot-metrics-dashboard-maintainers

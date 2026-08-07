@@ -1,0 +1,46 @@
+{
+  "name": "@ghcp-dash/collector",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microsoft/github-copilot-metrics-dashboard.git",
+    "directory": "apps/collector"
+  },
+  "bugs": {
+    "url": "https://github.com/microsoft/github-copilot-metrics-dashboard/issues"
+  },
+  "homepage": "https://github.com/microsoft/github-copilot-metrics-dashboard#readme",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "tsx src/index.ts collect",
+    "backfill": "tsx src/index.ts backfill",
+    "check:config": "tsx src/index.ts config-check",
+    "dev": "tsx watch src/index.ts collect --check",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo ok"
+  },
+  "dependencies": {
+    "@ghcp-dash/contracts": "workspace:*",
+    "@ghcp-dash/db": "workspace:*",
+    "@ghcp-dash/value": "workspace:*",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.2",
+    "parquetjs-lite": "^0.8.7",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
