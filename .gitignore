@@ -42,3 +42,6 @@ infra/postgres-data/
 
 # tool artifacts
 .playwright-mcp/
+
+# azd local environment state and secrets
+.azure/*

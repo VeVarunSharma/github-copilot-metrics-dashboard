@@ -198,9 +198,11 @@ Bicep templates live under `infra/bicep/`. The minimal single-region P1 foundati
 - One manual Container Apps Job for migration/bootstrap execution. It MUST use the `migration-database-url` secret and run Drizzle migrations followed by the production-safe seed before web traffic or scheduled collection is enabled.
 - One Container Apps Job for `collector` (cron schedule, daily 04:00 UTC by default, `--concurrency 1`).
 - Azure Database for PostgreSQL Flexible Server and the application database.
-- Azure Key Vault for runtime secrets (`github-token`, dashboard password, and database URL secrets).
-- Separate user-assigned managed identities for web, migration/bootstrap, and collector secret/registry access.
+- Azure Key Vault for runtime secret copies (`github-token`, dashboard password, and role-specific database URL secrets).
+- Container Apps MUST use Key Vault references by default. A policy-constrained POC MAY set `useKeyVaultReferences=false`; Bicep then injects the same role-specific values as encrypted Container Apps secrets while retaining Key Vault copies through the ARM management plane.
+- Separate user-assigned managed identities for web, migration/bootstrap, and collector registry access and, when Key Vault references are enabled, secret access.
 - Azure Storage with an Azure Files share mounted as durable collector `BRONZE_DIR` and a Blob container for future exports.
+- Policy-constrained POCs MAY set `enableBronzeFileShareMount=false` when Azure Policy disables Storage data-plane access. The collector then uses ephemeral `/tmp/bronze`; PostgreSQL facts remain durable, but bronze replay and export durability are explicitly unavailable.
 
 The foundation intentionally leaves some P1 hardening unfinished: private networking, automated database role bootstrap, validated tagged-release deployment orchestration, alert rules/action groups, custom domains, and native OIDC/RBAC auth remain follow-on work before production self-host readiness can be claimed. Phase 2 adds OneLake/Fabric workspace provisioning and a "mirror" container app that streams silver inserts to delta tables.
 
@@ -247,7 +249,9 @@ CI runs typecheck, lint, test, build, migration smoke, collector configuration s
 - `GITHUB_TOKEN` is read once at collector startup, never logged, never sent to the browser.
 - The web app has zero outbound GitHub calls.
 - The Postgres connection from the web app uses a separate role with `SELECT` only on silver/gold and `INSERT/UPDATE` only on `settings`.
-- Secrets in Azure deploy via Key Vault references; never baked into images.
+- Secrets in Azure deploy via Key Vault references by default and MUST never be baked into images. When Azure Policy disables Key Vault data-plane access and private networking is not part of the POC, `useKeyVaultReferences=false` MAY use encrypted Container Apps secrets containing the same least-privilege values; this fallback MUST NOT be presented as the production topology.
+- The local `azd` bootstrap hook MAY create a firewall rule restricted to the deployment client's current IPv4 address, MUST remove it with an exit trap, and MUST fail closed if it cannot determine a valid address.
+- `enableBronzeFileShareMount=false` MUST be limited to POC deployments and MUST be surfaced as a data-retention limitation; production deployments require durable bronze storage through private networking or another policy-compliant data-plane path.
 - Dependabot enabled on the repo; weekly cadence.
 - Container images run as non-root (UID 1000).
 

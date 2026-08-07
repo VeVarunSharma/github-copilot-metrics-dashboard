@@ -64,10 +64,17 @@ azd env set MIGRATION_ADMIN_PASSWORD '<strong-distinct-secret>'
 azd env set GITHUB_TOKEN '<classic-pat>'
 azd env set GITHUB_ORGS 'my-org'
 azd env set DASHBOARD_PASSWORD '<fallback-secret>'
+# POC-only when Azure Policy disables Key Vault data-plane access:
+# azd env set USE_KEY_VAULT_REFERENCES false
+# azd env set ENABLE_BRONZE_FILE_SHARE_MOUNT false
 azd up
 ```
 
-`azd up` builds and pushes the web and collector images, provisions Azure resources, runs the role bootstrap/migration/seed/grant-refresh hook, deploys services, and checks `/api/health`. If your azd version cannot deploy Container Apps Jobs as services, use the emitted `ACR_LOGIN_SERVER`, build/push `ghcp-collector:<tag>` with `infra/docker/Dockerfile.collector`, then rerun `azd provision` or a direct Bicep deployment with explicit collector/migration image refs.
+`azd up` builds and pushes the web and collector images, provisions Azure resources, runs the role bootstrap/migration/seed/grant-refresh hook, deploys services, and checks `/api/health`. The hook creates a temporary PostgreSQL firewall rule restricted to the deployment client's current IPv4 address and removes it on every exit path. If your azd version cannot deploy Container Apps Jobs as services, use the emitted `ACR_LOGIN_SERVER`, build/push `ghcp-collector:<tag>` with `infra/docker/Dockerfile.collector`, then rerun `azd provision` or a direct Bicep deployment with explicit collector/migration image refs.
+
+`USE_KEY_VAULT_REFERENCES=false` is a POC-only fallback for subscriptions where Azure Policy disables Key Vault public data-plane access and private networking is not yet configured. Bicep still stores copies in Key Vault through ARM, but injects the same least-privilege values as encrypted Container Apps secrets. Production deployments SHOULD keep Key Vault references enabled and add private networking instead.
+
+If the same policy disables Storage data-plane access, set `ENABLE_BRONZE_FILE_SHARE_MOUNT=false`. The collector then writes bronze files to ephemeral `/tmp/bronze`; PostgreSQL facts remain durable, but bronze replay and export durability are unavailable. This mode MUST NOT be used for production.
 
 ### Collector job image fallback
 

@@ -32,6 +32,12 @@ param logRetentionDays int = 30
 param postgresAdminUsername string
 @secure()
 param postgresAdminPassword string
+@secure()
+param webReadonlyPassword string
+@secure()
+param collectorWriterPassword string
+@secure()
+param migrationAdminPassword string
 param databaseName string = 'ghcp_metrics'
 param postgresSkuName string = 'Standard_B1ms'
 param postgresSkuTier string = 'Burstable'
@@ -45,6 +51,7 @@ param webDatabaseUrl string = ''
 param collectorDatabaseUrl string = ''
 @secure()
 param migrationDatabaseUrl string = ''
+param useKeyVaultReferences string = 'true'
 @secure()
 param githubToken string
 param githubOrgs string = ''
@@ -80,6 +87,7 @@ param migrationMemory string = '1Gi'
 param migrationDbMaxConnections int = 1
 param storageSkuName string = 'Standard_LRS'
 param bronzeShareQuotaGb string = '100'
+param enableBronzeFileShareMount string = 'true'
 param bronzeMountPath string = '/mnt/bronze'
 param bronzeDir string = '/mnt/bronze/data/bronze'
 param collectorLogLevel string = 'info'
@@ -126,6 +134,9 @@ module core './bicep/main.bicep' = {
     logRetentionDays: logRetentionDays
     postgresAdminUsername: postgresAdminUsername
     postgresAdminPassword: postgresAdminPassword
+    webReadonlyPassword: webReadonlyPassword
+    collectorWriterPassword: collectorWriterPassword
+    migrationAdminPassword: migrationAdminPassword
     databaseName: databaseName
     postgresSkuName: postgresSkuName
     postgresSkuTier: postgresSkuTier
@@ -136,6 +147,7 @@ module core './bicep/main.bicep' = {
     webDatabaseUrl: webDatabaseUrl
     collectorDatabaseUrl: collectorDatabaseUrl
     migrationDatabaseUrl: migrationDatabaseUrl
+    useKeyVaultReferences: toLower(useKeyVaultReferences) == 'true'
     githubToken: githubToken
     githubOrgs: githubOrgs
     githubEnterprise: githubEnterprise
@@ -168,6 +180,7 @@ module core './bicep/main.bicep' = {
     migrationDbMaxConnections: migrationDbMaxConnections
     storageSkuName: storageSkuName
     bronzeShareQuotaGb: int(bronzeShareQuotaGb)
+    enableBronzeFileShareMount: toLower(enableBronzeFileShareMount) == 'true'
     bronzeMountPath: bronzeMountPath
     bronzeDir: bronzeDir
     collectorLogLevel: collectorLogLevel
@@ -187,10 +200,12 @@ module core './bicep/main.bicep' = {
   }
 }
 
+output AZURE_RESOURCE_GROUP string = rg.name
 output WEB_URL string = core.outputs.webUrl
 output HEALTH_URL string = core.outputs.healthUrl
 output ACR_NAME string = core.outputs.acrName
 output ACR_LOGIN_SERVER string = core.outputs.acrLoginServer
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = core.outputs.acrLoginServer
 output LOG_ANALYTICS_WORKSPACE_NAME string = core.outputs.logAnalyticsWorkspaceName
 output LOG_ANALYTICS_WORKSPACE_ID string = core.outputs.logAnalyticsWorkspaceId
 output CONTAINER_APPS_ENVIRONMENT_NAME string = core.outputs.containerAppsEnvironmentName
