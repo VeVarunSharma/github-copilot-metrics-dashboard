@@ -26,7 +26,7 @@ azd up
 ## Hooks
 
 - `preprovision` validates required environment variables and never prints secrets.
-- `postprovision` runs `infra/postgres/bootstrap-roles.sql`, updates Key Vault DB URL secrets to least-privilege `web_readonly`, `collector_writer`, and `migration_admin` URLs, runs `pnpm db:migrate` and production-safe `pnpm db:seed` with `migration_admin`, reruns the role bootstrap, then verifies grants.
+- `postprovision` temporarily permits only the deployment client's current IPv4 address to reach PostgreSQL, guarantees firewall-rule cleanup with an exit trap, runs `infra/postgres/bootstrap-roles.sql`, runs `pnpm db:migrate` and production-safe `pnpm db:seed` with `migration_admin`, reruns the role bootstrap, then verifies grants. It refreshes Key Vault URLs only when Key Vault references are enabled; the direct-secret fallback receives role-specific URLs from Bicep.
 - `postdeploy` curls the emitted `HEALTH_URL` and fails on non-200.
 
 Required local tools for hooks: `psql`, `pnpm`, `node`, `az`, and `curl`.
@@ -54,10 +54,12 @@ Required local tools for hooks: `psql`, `pnpm`, `node`, `az`, and `curl`.
 | `entraClientSecret` | Secret stored in Key Vault as `entra-client-secret` and referenced by EasyAuth. |
 | `authMode` | Fallback app auth mode when EasyAuth is disabled: `open`, `shared-password`, or `identity-header`. |
 | `webDatabaseUrl`, `collectorDatabaseUrl`, `migrationDatabaseUrl` | Optional DB URL overrides; azd postprovision also refreshes Key Vault with least-privilege role URLs. |
+| `useKeyVaultReferences` | Defaults to `true`. Set `USE_KEY_VAULT_REFERENCES=false` only for policy-constrained POCs where Key Vault data-plane access is disabled; Container Apps then receive encrypted role-specific secrets while Key Vault retains ARM-managed copies. |
 | `enableAlerts` | Enables action group and alert rules. Set `alertEmailReceiver` or `alertWebhookReceiverUrl`. |
 | `enableAvailabilityTest` | Enables Application Insights and the standard web test for `/api/health`. |
 | `postgresBackupRetentionDays`, `postgresGeoRedundantBackup` | Flexible Server backup posture. |
 | `bronzeShareQuotaGb` | Azure Files quota for bronze NDJSON retention. |
+| `enableBronzeFileShareMount` | Defaults to `true`. Set `ENABLE_BRONZE_FILE_SHARE_MOUNT=false` only for policy-constrained POCs; collector bronze files then use ephemeral `/tmp/bronze`. |
 | `enableExportsLifecyclePolicy`, `exports*AfterDays` | Blob lifecycle rules for the `exports` container. |
 
 ## Authentication

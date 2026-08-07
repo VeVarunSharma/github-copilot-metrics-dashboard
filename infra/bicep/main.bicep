@@ -48,6 +48,18 @@ param postgresAdminUsername string
 @description('PostgreSQL Flexible Server administrator password. If generated DATABASE_URL secrets are used, choose a URL-safe password or pass explicit database URL overrides.')
 param postgresAdminPassword string
 
+@secure()
+@description('Password for the least-privilege web_readonly database role.')
+param webReadonlyPassword string
+
+@secure()
+@description('Password for the collector_writer database role.')
+param collectorWriterPassword string
+
+@secure()
+@description('Password for the migration_admin database role.')
+param migrationAdminPassword string
+
 @description('Database name to create on the PostgreSQL Flexible Server.')
 param databaseName string = 'ghcp_metrics'
 
@@ -93,6 +105,9 @@ param collectorDatabaseUrl string = ''
 @secure()
 @description('Optional explicit DATABASE_URL for migrations/admin automation. If blank, the admin DATABASE_URL is stored.')
 param migrationDatabaseUrl string = ''
+
+@description('Use Key Vault references in Container Apps. Disable only when policy blocks Key Vault data-plane access; values remain encrypted Container Apps secrets and are also stored in Key Vault.')
+param useKeyVaultReferences bool = true
 
 @secure()
 @description('Classic GitHub PAT for the collector. The web app never receives this secret.')
@@ -221,6 +236,9 @@ param storageSkuName string = 'Standard_LRS'
 @maxValue(5120)
 param bronzeShareQuotaGb int = 100
 
+@description('Mount the Azure Files bronze share into the collector. Disable only when policy blocks Storage data-plane access; bronze files then use ephemeral container storage.')
+param enableBronzeFileShareMount bool = true
+
 @description('Container mount path for the bronze Azure Files share.')
 param bronzeMountPath string = '/mnt/bronze'
 
@@ -313,16 +331,19 @@ var migrationJobName = take('${baseName}-migrate', 32)
 var bronzeFileShareName = 'bronze'
 var exportsContainerName = 'exports'
 var bronzeStorageMountName = 'bronze-files'
+var effectiveBronzeDir = enableBronzeFileShareMount ? bronzeDir : '/tmp/bronze'
 var defaultWebImage = '${acr.properties.loginServer}/ghcp-web:${imageTag}'
 var defaultCollectorImage = '${acr.properties.loginServer}/ghcp-collector:${imageTag}'
 var effectiveWebImage = empty(webImage) ? defaultWebImage : webImage
 var effectiveCollectorImage = empty(collectorImage) ? defaultCollectorImage : collectorImage
 var effectiveMigrationImage = empty(migrationImage) ? effectiveCollectorImage : migrationImage
 var migrationBootstrapCommand = 'node node_modules/@ghcp-dash/db/dist/migrate.js && node node_modules/@ghcp-dash/db/dist/seed.js'
-var generatedDatabaseUrl = 'postgres://${uriComponent(postgresAdminUsername)}:${uriComponent(postgresAdminPassword)}@${postgresServer.properties.fullyQualifiedDomainName}:5432/${databaseName}?sslmode=require'
-var effectiveWebDatabaseUrl = empty(webDatabaseUrl) ? generatedDatabaseUrl : webDatabaseUrl
-var effectiveCollectorDatabaseUrl = empty(collectorDatabaseUrl) ? generatedDatabaseUrl : collectorDatabaseUrl
-var effectiveMigrationDatabaseUrl = empty(migrationDatabaseUrl) ? generatedDatabaseUrl : migrationDatabaseUrl
+var generatedWebDatabaseUrl = 'postgres://${uriComponent('web_readonly')}:${uriComponent(webReadonlyPassword)}@${postgresServer.properties.fullyQualifiedDomainName}:5432/${databaseName}?sslmode=require'
+var generatedCollectorDatabaseUrl = 'postgres://${uriComponent('collector_writer')}:${uriComponent(collectorWriterPassword)}@${postgresServer.properties.fullyQualifiedDomainName}:5432/${databaseName}?sslmode=require'
+var generatedMigrationDatabaseUrl = 'postgres://${uriComponent('migration_admin')}:${uriComponent(migrationAdminPassword)}@${postgresServer.properties.fullyQualifiedDomainName}:5432/${databaseName}?sslmode=require'
+var effectiveWebDatabaseUrl = empty(webDatabaseUrl) ? generatedWebDatabaseUrl : webDatabaseUrl
+var effectiveCollectorDatabaseUrl = empty(collectorDatabaseUrl) ? generatedCollectorDatabaseUrl : collectorDatabaseUrl
+var effectiveMigrationDatabaseUrl = empty(migrationDatabaseUrl) ? generatedMigrationDatabaseUrl : migrationDatabaseUrl
 var generatedPublicAppUrl = 'https://${webAppName}.${containerEnvironment.properties.defaultDomain}'
 var effectivePublicAppUrl = empty(publicAppUrl) ? generatedPublicAppUrl : publicAppUrl
 var webAuthMode = enableEntraAuth ? 'identity-header' : authMode
@@ -497,7 +518,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   properties: {
     allowBlobPublicAccess: false
     minimumTlsVersion: 'TLS1_2'
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enableBronzeFileShareMount ? 'Enabled' : 'Disabled'
     supportsHttpsTrafficOnly: true
   }
 }
@@ -568,7 +589,7 @@ resource bronzeFileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@
   }
 }
 
-resource collectorStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource collectorStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableBronzeFileShareMount) {
   name: guid(storageAccount.id, collectorIdentity.id, 'blob-data-contributor')
   scope: storageAccount
   properties: {
@@ -590,18 +611,18 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     }
     enableRbacAuthorization: true
     enabledForTemplateDeployment: true
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: useKeyVaultReferences ? 'Enabled' : 'Disabled'
     softDeleteRetentionInDays: 30
     networkAcls: {
       bypass: 'AzureServices'
-      defaultAction: 'Allow'
+      defaultAction: useKeyVaultReferences ? 'Allow' : 'Deny'
     }
   }
 }
 
 // Least-privilege Key Vault access: each identity is scoped to only the secrets it needs, so the
 // web identity cannot read the collector's github-token even though it shares the vault.
-resource webDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource webDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useKeyVaultReferences) {
   name: guid(webDatabaseUrlSecret.id, webIdentity.id, 'secrets-user')
   scope: webDatabaseUrlSecret
   properties: {
@@ -611,7 +632,7 @@ resource webDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-resource webDashboardPasswordSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource webDashboardPasswordSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useKeyVaultReferences) {
   name: guid(dashboardPasswordSecret.id, webIdentity.id, 'secrets-user')
   scope: dashboardPasswordSecret
   properties: {
@@ -621,7 +642,7 @@ resource webDashboardPasswordSecretUser 'Microsoft.Authorization/roleAssignments
   }
 }
 
-resource webEntraClientSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableEntraAuth) {
+resource webEntraClientSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useKeyVaultReferences && enableEntraAuth) {
   name: guid(entraClientSecretSecret.id, webIdentity.id, 'secrets-user')
   scope: entraClientSecretSecret
   properties: {
@@ -631,7 +652,7 @@ resource webEntraClientSecretUser 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource collectorDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource collectorDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useKeyVaultReferences) {
   name: guid(collectorDatabaseUrlSecret.id, collectorIdentity.id, 'secrets-user')
   scope: collectorDatabaseUrlSecret
   properties: {
@@ -641,7 +662,7 @@ resource collectorDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource collectorGithubTokenSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource collectorGithubTokenSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useKeyVaultReferences) {
   name: guid(githubTokenSecret.id, collectorIdentity.id, 'secrets-user')
   scope: githubTokenSecret
   properties: {
@@ -651,7 +672,7 @@ resource collectorGithubTokenSecretUser 'Microsoft.Authorization/roleAssignments
   }
 }
 
-resource migrationDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource migrationDbUrlSecretUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useKeyVaultReferences) {
   name: guid(migrationDatabaseUrlSecret.id, migrationIdentity.id, 'secrets-user')
   scope: migrationDatabaseUrlSecret
   properties: {
@@ -770,7 +791,7 @@ resource containerEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-resource bronzeEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = {
+resource bronzeEnvironmentStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if (enableBronzeFileShareMount) {
   parent: containerEnvironment
   name: bronzeStorageMountName
   properties: {
@@ -811,10 +832,13 @@ resource migrationJob 'Microsoft.App/jobs@2024-03-01' = {
         }
       ]
       secrets: [
-        {
+        useKeyVaultReferences ? {
           name: 'migration-database-url'
           keyVaultUrl: migrationDatabaseUrlSecret.properties.secretUri
           identity: migrationIdentity.id
+        } : {
+          name: 'migration-database-url'
+          value: effectiveMigrationDatabaseUrl
         }
       ]
     }
@@ -896,21 +920,30 @@ resource webApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       secrets: concat([
-        {
+        useKeyVaultReferences ? {
           name: 'web-database-url'
           keyVaultUrl: webDatabaseUrlSecret.properties.secretUri
           identity: webIdentity.id
+        } : {
+          name: 'web-database-url'
+          value: effectiveWebDatabaseUrl
         }
-        {
+        useKeyVaultReferences ? {
           name: 'dashboard-password'
           keyVaultUrl: dashboardPasswordSecret.properties.secretUri
           identity: webIdentity.id
+        } : {
+          name: 'dashboard-password'
+          value: dashboardPassword
         }
       ], enableEntraAuth ? [
-        {
+        useKeyVaultReferences ? {
           name: 'entra-client-secret'
           keyVaultUrl: entraClientSecretSecret.properties.secretUri
           identity: webIdentity.id
+        } : {
+          name: 'entra-client-secret'
+          value: entraClientSecret
         }
       ] : [])
     }
@@ -1088,15 +1121,21 @@ resource collectorJob 'Microsoft.App/jobs@2024-03-01' = {
         }
       ]
       secrets: [
-        {
+        useKeyVaultReferences ? {
           name: 'collector-database-url'
           keyVaultUrl: collectorDatabaseUrlSecret.properties.secretUri
           identity: collectorIdentity.id
+        } : {
+          name: 'collector-database-url'
+          value: effectiveCollectorDatabaseUrl
         }
-        {
+        useKeyVaultReferences ? {
           name: 'github-token'
           keyVaultUrl: githubTokenSecret.properties.secretUri
           identity: collectorIdentity.id
+        } : {
+          name: 'github-token'
+          value: githubToken
         }
       ]
     }
@@ -1107,7 +1146,7 @@ resource collectorJob 'Microsoft.App/jobs@2024-03-01' = {
           image: effectiveCollectorImage
           command: [
             'node'
-            'dist/index.js'
+            'dist/apps/collector/src/index.js'
           ]
           args: [
             'collect'
@@ -1147,32 +1186,32 @@ resource collectorJob 'Microsoft.App/jobs@2024-03-01' = {
             }
             {
               name: 'BRONZE_DIR'
-              value: bronzeDir
+              value: effectiveBronzeDir
             }
             {
               name: 'LOG_LEVEL'
               value: collectorLogLevel
             }
           ]
-          volumeMounts: [
+          volumeMounts: enableBronzeFileShareMount ? [
             {
               volumeName: 'bronze'
               mountPath: bronzeMountPath
             }
-          ]
+          ] : []
           resources: {
             cpu: json(collectorCpu)
             memory: collectorMemory
           }
         }
       ]
-      volumes: [
+      volumes: enableBronzeFileShareMount ? [
         {
           name: 'bronze'
           storageType: 'AzureFile'
           storageName: bronzeEnvironmentStorage.name
         }
-      ]
+      ] : []
     }
   }
   dependsOn: [
@@ -1562,8 +1601,8 @@ output monitoring object = {
 @description('Storage account and containers/shares for bronze retention and future exports.')
 output storage object = {
   accountName: storageAccount.name
-  bronzeFileShareName: bronzeFileShare.name
+  bronzeFileShareName: enableBronzeFileShareMount ? bronzeFileShare.name : ''
   bronzeMountPath: bronzeMountPath
-  bronzeDir: bronzeDir
+  bronzeDir: effectiveBronzeDir
   exportsContainerName: exportsContainer.name
 }
