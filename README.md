@@ -14,6 +14,16 @@ GitHub's native Copilot dashboard shows a 28-day window of usage metrics. Copilo
 4. **Delivery evidence** from PR metrics already exposed by the Copilot Metrics API.
 5. **Standalone calculator** for quick what-if savings estimates without GitHub API access.
 
+## Verified Azure POC
+
+A public, open-access proof of concept is deployed in the `ghcpdash-cu1` environment in Azure Central US:
+
+- [Dashboard](https://ghcpdash-ghcpdash-cu1-web.happysand-14c29e7d.centralus.azurecontainerapps.io/)
+- [Health endpoint](https://ghcpdash-ghcpdash-cu1-web.happysand-14c29e7d.centralus.azurecontainerapps.io/api/health)
+- [Azure resource group: `rg-ghcpdash-cu1`](https://portal.azure.com/#@/resource/subscriptions/ad92e163-a85e-40cc-bb50-054b0b8197a8/resourceGroups/rg-ghcpdash-cu1/overview)
+
+Deployment-time verification on 2026-08-07 confirmed the Azure POC path. This is **not** a production-readiness or uptime claim. The dashboard intentionally has no access gate, and the Azure Portal link requires access to the subscription.
+
 ## Status: P0 OSS Beta
 
 This repository is in **P0 — OSS Beta / core value-story launch** for a trustworthy local/demo and org-scope real-data experience across the P0 views. See [`CHANGELOG.md`](./CHANGELOG.md) for beta release notes. Do **not** treat the project as production self-host ready until the **P1** gates in [`specs/08-launch-readiness-and-priorities.md`](./specs/08-launch-readiness-and-priorities.md) pass, including production-credible auth, Azure deployment artifacts, observability, backup/restore, and runbooks.
@@ -160,7 +170,7 @@ For health probe behavior, collector run status, alert recommendations, and exam
 
 ## Azure P1 foundation
 
-A single-region Bicep foundation lives in [`infra/bicep`](./infra/bicep/) and deploys with the Azure Developer CLI (`azd up`). It provisions Container Apps web/collector workloads, Postgres Flex, Key Vault, Log Analytics, managed identities, durable bronze storage, optional Microsoft Entra built-in auth (`enableEntraAuth`), and optional Azure Monitor alerts (`enableAlerts`) plus an `/api/health` availability test (`enableAvailabilityTest`). An `azd` postprovision hook bootstraps least-privilege database roles, runs migrations, and verifies grants. It is a P1 hardening artifact, not a production-readiness claim; review [`infra/bicep/README.md`](./infra/bicep/README.md) and [`docs/production-runbook.md`](./docs/production-runbook.md) before deploying.
+A single-region Bicep foundation lives in [`infra/bicep`](./infra/bicep/). The verified clean-environment flow validates with `azd provision --preview --no-prompt`, provisions with `azd provision --no-prompt`, then deploys with `azd deploy --no-prompt` so Container Apps and ACR RBAC can propagate before image builds and pushes. It provisions Container Apps web/collector workloads, Postgres Flex, Key Vault, Log Analytics, managed identities, durable bronze storage, optional Microsoft Entra built-in auth (`enableEntraAuth`), and optional Azure Monitor alerts (`enableAlerts`) plus an `/api/health` availability test (`enableAvailabilityTest`). An `azd` postprovision hook bootstraps least-privilege database roles, runs migrations, and verifies grants. It is a P1 hardening artifact, not a production-readiness claim; review [`infra/bicep/README.md`](./infra/bicep/README.md) and [`docs/production-runbook.md`](./docs/production-runbook.md) before deploying.
 
 ## Seed reference
 

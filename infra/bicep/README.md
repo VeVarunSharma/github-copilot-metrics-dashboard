@@ -2,6 +2,18 @@
 
 This folder contains the resource-group scoped Bicep module used by the Azure Developer CLI (`azd`) subscription wrapper in `../main.bicep`. It is a P1 hardening foundation, not a production-readiness claim; production readiness remains gated by `specs/08-launch-readiness-and-priorities.md` and restore rehearsal evidence.
 
+## Verified POC deployment
+
+The `ghcpdash-cu1` environment is deployed to `rg-ghcpdash-cu1` in `centralus`:
+
+- [Dashboard](https://ghcpdash-ghcpdash-cu1-web.happysand-14c29e7d.centralus.azurecontainerapps.io/)
+- [Health endpoint](https://ghcpdash-ghcpdash-cu1-web.happysand-14c29e7d.centralus.azurecontainerapps.io/api/health)
+- [Azure resource group](https://portal.azure.com/#@/resource/subscriptions/ad92e163-a85e-40cc-bb50-054b0b8197a8/resourceGroups/rg-ghcpdash-cu1/overview) (requires Azure access)
+
+Deployment-time verification on 2026-08-07 reached HTTP 200 for the dashboard and health endpoint, reported database readiness, and completed a fresh collector ingestion. This is a public, open-access POC in Central US, not a production-readiness or uptime claim.
+
+The POC used `USE_KEY_VAULT_REFERENCES=false` and `ENABLE_BRONZE_FILE_SHARE_MOUNT=false` because policy blocked public Key Vault and Storage data-plane access. Production needs private data-plane connectivity, Key Vault references, and durable bronze storage; ephemeral `/tmp/bronze` is not production-safe.
+
 ## azd deployment flow
 
 `azure.yaml` points `infra.path` to `infra` and `infra.module` to `main`. The wrapper creates/updates `rg-${AZURE_ENV_NAME}` at subscription scope, then invokes this resource-group scoped module.
@@ -18,10 +30,13 @@ azd env set MIGRATION_ADMIN_PASSWORD '<strong-distinct-secret>'
 azd env set GITHUB_TOKEN '<classic-pat>'
 azd env set GITHUB_ORGS 'my-org'
 azd env set DASHBOARD_PASSWORD '<shared-password-fallback-secret>'
-azd up
+azd provision --preview --no-prompt
+azd provision --no-prompt
+azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT
+azd deploy --no-prompt
 ```
 
-`azd up` packages the `web` service from `infra/docker/Dockerfile.web` and the `collector` service from `infra/docker/Dockerfile.collector`, pushes both to the provisioned ACR via `SERVICE_WEB_IMAGE_NAME` and `SERVICE_COLLECTOR_IMAGE_NAME`, provisions infrastructure, runs hooks, deploys, and finally checks `/api/health`. The web Container App is tagged `azd-service-name=web`; the collector job is tagged `azd-service-name=collector`. If your installed `azd` cannot map Container Apps Jobs as deployable services, run `azd package`/`azd deploy web`, then build/push the collector image to `ACR_LOGIN_SERVER/ghcp-collector:<tag>` and redeploy with `COLLECTOR_IMAGE`/`SERVICE_COLLECTOR_IMAGE_NAME` equivalent, or pass explicit `collectorImage`/`migrationImage` to the Bicep module.
+The verified flow separates provisioning from deployment so the Container Apps identities and ACR role assignments can propagate before remote image builds and pushes. `AZURE_CONTAINER_REGISTRY_ENDPOINT` is emitted by the Bicep wrapper and consumed by both service definitions in `azure.yaml`; confirm it is present after provisioning. `azd deploy --no-prompt` packages the `web` service from `infra/docker/Dockerfile.web` and the `collector` service from `infra/docker/Dockerfile.collector`, pushes both to ACR via `SERVICE_WEB_IMAGE_NAME` and `SERVICE_COLLECTOR_IMAGE_NAME`, deploys the services, and checks `/api/health`. The web Container App is tagged `azd-service-name=web`; the collector job is tagged `azd-service-name=collector`. If your installed `azd` cannot map Container Apps Jobs as deployable services, run `azd package`/`azd deploy web`, then build/push the collector image to `ACR_LOGIN_SERVER/ghcp-collector:<tag>` and redeploy with `COLLECTOR_IMAGE`/`SERVICE_COLLECTOR_IMAGE_NAME` equivalent, or pass explicit `collectorImage`/`migrationImage` to the Bicep module.
 
 ## Hooks
 
@@ -70,7 +85,9 @@ The recommended production path is public Container Apps ingress protected by Co
 azd env set ENABLE_ENTRA_AUTH true
 azd env set ENTRA_CLIENT_ID '<app-client-id>'
 azd env set ENTRA_CLIENT_SECRET '<app-client-secret>'
-azd up
+azd provision --preview --no-prompt
+azd provision --no-prompt
+azd deploy --no-prompt
 ```
 
 EasyAuth redirects unauthenticated users to Entra, strips spoofed client identity headers at the platform boundary, and injects `x-ms-client-principal-name`; the app reads that header because `AUTH_MODE=identity-header`. `/api/health`, `/calculator`, and `/calculator/*` are excluded from EasyAuth. Shared-password and open modes remain available by setting `ENABLE_ENTRA_AUTH=false` and `AUTH_MODE` appropriately.
