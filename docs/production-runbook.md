@@ -26,7 +26,7 @@ GitHub token scopes:
 
 ## Database role bootstrap
 
-Use [`infra/postgres/bootstrap-roles.sql`](../infra/postgres/bootstrap-roles.sql) to create repeatable Postgres roles and grants. This artifact is **operator-run guidance**; the current Bicep template provisions a migration/bootstrap job for Drizzle migrations and production-safe seed, but it does not execute this SQL or automatically provision the database roles.
+Use [`infra/postgres/bootstrap-roles.sql`](../infra/postgres/bootstrap-roles.sql) to create repeatable Postgres roles and grants. The `azd` postprovision hook runs this script, runs Drizzle migrations and the production-safe seed as `migration_admin`, reruns the script to refresh grants, and verifies role separation. The commands below remain the trusted-runner fallback.
 
 Run it as the server admin, database owner, or another trusted bootstrap principal after the database exists:
 
@@ -50,12 +50,18 @@ Construct and store three separate `DATABASE_URL` values, URL-encoding passwords
 
 The preferred Azure deployment path is Azure Developer CLI using the root `azure.yaml`. The project uses a subscription-scoped wrapper (`infra/main.bicep`) that creates or updates the azd resource group and invokes the existing resource-group scoped module (`infra/bicep/main.bicep`).
 
+The verified workflow deliberately separates infrastructure from image deployment:
+
+1. `azd provision --preview --no-prompt` validates the planned infrastructure changes.
+2. `azd provision --no-prompt` creates the Container Apps, ACR, identities, and role assignments and emits deployment outputs.
+3. `azd deploy --no-prompt` builds and pushes images after ACR RBAC has had time to propagate.
+
 Minimum clean-environment flow:
 
 ```bash
 azd auth login
 azd env new prod
-azd env set AZURE_LOCATION eastus
+azd env set AZURE_LOCATION centralus
 azd env set POSTGRES_ADMIN_USERNAME ghcpadmin
 azd env set POSTGRES_ADMIN_PASSWORD '<strong-secret>'
 azd env set WEB_READONLY_PASSWORD '<strong-distinct-secret>'
@@ -67,14 +73,19 @@ azd env set DASHBOARD_PASSWORD '<fallback-secret>'
 # POC-only when Azure Policy disables Key Vault data-plane access:
 # azd env set USE_KEY_VAULT_REFERENCES false
 # azd env set ENABLE_BRONZE_FILE_SHARE_MOUNT false
-azd up
+azd provision --preview --no-prompt
+azd provision --no-prompt
+azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT
+azd deploy --no-prompt
 ```
 
-`azd up` builds and pushes the web and collector images, provisions Azure resources, runs the role bootstrap/migration/seed/grant-refresh hook, deploys services, and checks `/api/health`. The hook creates a temporary PostgreSQL firewall rule restricted to the deployment client's current IPv4 address and removes it on every exit path. If your azd version cannot deploy Container Apps Jobs as services, use the emitted `ACR_LOGIN_SERVER`, build/push `ghcp-collector:<tag>` with `infra/docker/Dockerfile.collector`, then rerun `azd provision` or a direct Bicep deployment with explicit collector/migration image refs.
+`AZURE_CONTAINER_REGISTRY_ENDPOINT` is emitted by Bicep and consumed by both service definitions in `azure.yaml`; confirm it is present before deployment. The split sequence allows the Container Apps identities and ACR role assignments created during provisioning to propagate before remote image builds and pushes. If the first deploy encounters an ACR authorization delay, wait for RBAC propagation and rerun `azd deploy --no-prompt`.
 
-`USE_KEY_VAULT_REFERENCES=false` is a POC-only fallback for subscriptions where Azure Policy disables Key Vault public data-plane access and private networking is not yet configured. Bicep still stores copies in Key Vault through ARM, but injects the same least-privilege values as encrypted Container Apps secrets. Production deployments SHOULD keep Key Vault references enabled and add private networking instead.
+The postprovision hook creates a temporary PostgreSQL firewall rule restricted to the deployment client's current IPv4 address, guarantees cleanup, bootstraps roles, runs migrations and the production-safe seed, then verifies grants. `azd deploy --no-prompt` deploys both services, applies the collector job image fallback, and checks `/api/health`. If your azd version cannot deploy Container Apps Jobs as services, use the emitted `ACR_LOGIN_SERVER`, build/push `ghcp-collector:<tag>` with `infra/docker/Dockerfile.collector`, then rerun `azd provision --no-prompt` or a direct Bicep deployment with explicit collector/migration image refs.
 
-If the same policy disables Storage data-plane access, set `ENABLE_BRONZE_FILE_SHARE_MOUNT=false`. The collector then writes bronze files to ephemeral `/tmp/bronze`; PostgreSQL facts remain durable, but bronze replay and export durability are unavailable. This mode MUST NOT be used for production.
+`USE_KEY_VAULT_REFERENCES=false` is a POC-only fallback for subscriptions where Azure Policy disables Key Vault public data-plane access and private networking is not yet configured. Bicep still stores copies in Key Vault through ARM, but injects the same least-privilege values as encrypted Container Apps secrets. Production deployments SHOULD keep Key Vault references enabled and provide private data-plane connectivity instead.
+
+If the same policy disables Storage data-plane access, set `ENABLE_BRONZE_FILE_SHARE_MOUNT=false`. The collector then writes bronze files to ephemeral `/tmp/bronze`; PostgreSQL facts remain durable, but bronze replay and export durability are unavailable. Production requires durable bronze storage and private data-plane connectivity; this mode MUST NOT be used for production.
 
 ### Collector job image fallback
 
@@ -86,6 +97,34 @@ az containerapp job update -g "$AZURE_RESOURCE_GROUP" -n "$COLLECTOR_JOB_NAME" -
 
 `COLLECTOR_JOB_NAME` comes from the Bicep `collectorJobName` output and `SERVICE_COLLECTOR_IMAGE_NAME` is the image reference produced by azd packaging. If any required value is unavailable, the hook logs a skip message and leaves the deployment result to azd.
 
+### Initial collector execution
+
+Start the first collector run manually, inspect its execution status, and review the latest logs before relying on the schedule:
+
+```bash
+AZURE_RESOURCE_GROUP="$(azd env get-value AZURE_RESOURCE_GROUP)"
+COLLECTOR_JOB_NAME="$(azd env get-value COLLECTOR_JOB_NAME)"
+
+az containerapp job start \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --name "$COLLECTOR_JOB_NAME" \
+  --output none
+
+az containerapp job execution list \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --name "$COLLECTOR_JOB_NAME" \
+  --output table
+
+az containerapp job logs show \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --name "$COLLECTOR_JOB_NAME" \
+  --container collector \
+  --tail 100 \
+  --format text
+```
+
+Wait for the latest execution to report `Succeeded`. Successful logs include the `event=ingestion_run_finalized` marker; confirm that the dashboard reflects a fresh ingestion day before enabling or relying on the schedule.
+
 ### Entra dashboard auth
 
 Recommended production access control is Container Apps EasyAuth with Microsoft Entra ID:
@@ -94,7 +133,9 @@ Recommended production access control is Container Apps EasyAuth with Microsoft 
 azd env set ENABLE_ENTRA_AUTH true
 azd env set ENTRA_CLIENT_ID '<app-client-id>'
 azd env set ENTRA_CLIENT_SECRET '<app-client-secret>'
-azd up
+azd provision --preview --no-prompt
+azd provision --no-prompt
+azd deploy --no-prompt
 ```
 
 When enabled, Bicep creates the `entra-client-secret` Key Vault secret, configures the web Container App `authConfigs/current`, and sets `AUTH_MODE=identity-header`. EasyAuth requires authentication for dashboard routes and excludes `/api/health`, `/calculator`, and `/calculator/*`. Keep `ENABLE_ENTRA_AUTH=false` only for local/demo, externally protected ingress, or the documented shared-password fallback.
@@ -107,7 +148,9 @@ Enable operational alerts with an email or webhook receiver:
 azd env set ENABLE_ALERTS true
 azd env set ALERT_EMAIL_RECEIVER ops@example.com
 azd env set ENABLE_AVAILABILITY_TEST true
-azd up
+azd provision --preview --no-prompt
+azd provision --no-prompt
+azd deploy --no-prompt
 ```
 
 The deployment creates alert rules for collector failed runs, stale ingestion, migration failures, repeated GitHub API errors, web health failures, Postgres CPU/storage pressure, and storage capacity pressure. The ingestion freshness rules depend on collector log lines containing `event=ingestion_run_finalized`.
@@ -118,22 +161,35 @@ The deployment creates alert rules for collector failed runs, stale ingestion, m
 
 2. **Set required azd environment values.** Include Azure location, Postgres admin credentials, three database role passwords, GitHub collector scope/token, dashboard fallback secret, and optional Entra/alert settings. Keep secrets in azd environment storage and Key Vault; do not commit them.
 
-3. **Run `azd up`.** This provisions the subscription wrapper, builds and pushes web/collector images to ACR, configures Container Apps/Jobs, bootstraps database roles, runs migrations and production-safe seed with `migration_admin`, refreshes grants, deploys, and smokes `/api/health`.
+3. **Preview infrastructure.** Run `azd provision --preview --no-prompt` and review the resource changes before applying them.
 
-4. **Verify database role separation.** Confirm web uses `web_readonly`, collector uses `collector_writer`, and only hooks/manual migration jobs use `migration_admin`. The web app must not receive `GITHUB_TOKEN`.
+4. **Provision infrastructure.** Run `azd provision --no-prompt`. Confirm `azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT` returns the provisioned ACR endpoint before deploying images.
 
-5. **Verify auth posture.** For production, prefer `ENABLE_ENTRA_AUTH=true` and validate Entra sign-in to a protected dashboard route while `/api/health` and `/calculator` remain public. If using shared-password mode, document the accepted fallback risk.
+5. **Deploy images.** Run `azd deploy --no-prompt`. This builds and pushes web/collector images, updates the web app and collector job, and runs the postdeploy health check.
 
-6. **Verify alerts.** If `ENABLE_ALERTS=true`, confirm the action group receiver, the Application Insights availability test when enabled, and the Log Analytics scheduled-query rules. The stale/failed ingestion queries require collector `event=ingestion_run_finalized` logs.
+6. **Verify database role separation.** Confirm web uses `web_readonly`, collector uses `collector_writer`, and only hooks/manual migration jobs use `migration_admin`. The web app must not receive `GITHUB_TOKEN`.
 
-7. **Run collector smoke and initial ingestion.** Validate config and token scopes, then backfill the desired range with `--concurrency 1`. Enable the daily schedule after the backfill is healthy.
+7. **Verify auth and alerts.** For production, prefer `ENABLE_ENTRA_AUTH=true` and validate Entra sign-in while `/api/health` and `/calculator` remain public. If `ENABLE_ALERTS=true`, confirm the action group, availability test, and scheduled-query rules.
+
+8. **Run the initial collector execution.** Start the Container Apps Job, inspect its execution and logs, and confirm fresh dashboard data before relying on the schedule.
+
+9. **Verify the final deployment.** Inspect resources and endpoints, then require a successful readiness response:
+
+   ```bash
+   azd show --no-prompt
+   WEB_URL="$(azd env get-value WEB_URL)"
+   curl -fsS -o /dev/null -w 'dashboard HTTP %{http_code}\n' "$WEB_URL"
+   curl -fsS "${WEB_URL%/}/api/health"
+   ```
+
+   A healthy response reports `status`, `liveness`, and `readiness` as `ok`, with `checks.db` equal to `ok`.
 
 ## Migration and upgrade procedure
 
 1. Read the release notes for schema, environment, value-methodology, or operational changes.
 2. Pause the scheduled collector job.
 3. Confirm a recent backup exists and that PITR is enabled. For high-risk upgrades, restore a non-production copy first and rehearse the migration.
-4. Run `azd up` for the new release/environment, or build and push versioned web and collector images if using a manual path.
+4. Run `azd provision --preview --no-prompt`, then `azd provision --no-prompt` for the new release/environment. Confirm `AZURE_CONTAINER_REGISTRY_ENDPOINT` is present before running `azd deploy --no-prompt`, or build and push versioned web and collector images if using a manual path.
 5. Run migration/bootstrap before updating web or collector traffic. The azd `postprovision` hook performs role bootstrap, migration, seed, and grant refresh. Manual Azure path:
 
    ```bash
@@ -171,7 +227,7 @@ The deployment creates alert rules for collector failed runs, stale ingestion, m
    pnpm --filter @ghcp-dash/collector exec tsx src/index.ts gold
    ```
 
-8. Deploy the web image, verify `/api/health`, then deploy/update the collector job image. With azd, this is handled by `azd up`; if job service mapping is unavailable, manually push the collector image and redeploy the job image ref.
+8. Deploy the web and collector images with `azd deploy --no-prompt`, verify `/api/health`, and confirm the collector job image. If job service mapping is unavailable, manually push the collector image and redeploy the job image ref.
 9. Run collector smoke:
 
    ```bash
