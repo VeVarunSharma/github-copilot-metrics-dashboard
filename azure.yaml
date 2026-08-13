@@ -1,0 +1,46 @@
+name: github-copilot-metrics-dashboard
+metadata:
+  template: copilot-metrics-dashboard-azd@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+services:
+  web:
+    project: .
+    host: containerapp
+    language: js
+    docker:
+      path: infra/docker/Dockerfile.web
+      context: .
+      registry: ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+      buildArgs:
+        - NPM_REGISTRY=${NPM_REGISTRY=https://registry.npmjs.org}
+      remoteBuild: true
+  collector:
+    project: .
+    host: containerapp
+    language: js
+    docker:
+      path: infra/docker/Dockerfile.collector
+      context: .
+      registry: ${AZURE_CONTAINER_REGISTRY_ENDPOINT}
+      buildArgs:
+        - NPM_REGISTRY=${NPM_REGISTRY=https://registry.npmjs.org}
+      remoteBuild: true
+
+hooks:
+  preprovision:
+    shell: sh
+    run: sh ./infra/hooks/preprovision.sh
+    interactive: false
+  postprovision:
+    shell: sh
+    run: sh ./infra/hooks/postprovision.sh
+    interactive: false
+  postdeploy:
+    shell: sh
+    run: sh ./infra/hooks/postdeploy.sh
+    interactive: false
