@@ -102,6 +102,9 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --prod --audit-level=critical
 
+      - name: Build value package declarations
+        run: pnpm --filter @ghcp-dash/value build
+
       - name: Typecheck
         run: pnpm typecheck
 
