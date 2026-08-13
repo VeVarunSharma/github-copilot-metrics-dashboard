@@ -106,7 +106,7 @@ jobs:
         run: pnpm --filter @ghcp-dash/value build
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm --filter @ghcp-dash/value build && pnpm typecheck
 
       - name: Lint
         run: pnpm lint
