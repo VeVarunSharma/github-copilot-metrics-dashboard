@@ -104,6 +104,10 @@ jobs:
         # tracked by Dependabot and must not block CI on unrelated changes.
         run: pnpm audit --prod --audit-level=high
 
+      - name: Build workspace type declarations
+        # @ghcp-dash/db resolves @ghcp-dash/value through its emitted dist types.
+        run: pnpm --filter @ghcp-dash/value build
+
       - name: Typecheck
         run: pnpm typecheck
 
