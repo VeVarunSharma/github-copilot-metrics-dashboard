@@ -1,0 +1,58 @@
+name: Feature request
+description: Propose a Copilot Metrics Dashboard enhancement aligned to the launch-readiness priorities.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Copilot Metrics Dashboard prioritizes a defensible P0 value story first. P1/P2 ideas are welcome, but must preserve privacy, methodology transparency, and OSS-first self-hosting.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Proposed priority
+      options:
+        - P0 — OSS Beta / core value-story launch
+        - P1 — Production self-host readiness
+        - P2 — Expansion / advanced analytics
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user need or launch-readiness gap does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the smallest useful version.
+    validations:
+      required: true
+  - type: textarea
+    id: value-methodology
+    attributes:
+      label: Value story and methodology impact
+      description: Note any affected metrics, formulas, assumptions, denominators, or "How is this calculated?" explanations.
+  - type: textarea
+    id: data-privacy
+    attributes:
+      label: Data and privacy impact
+      description: Identify new data sources, credentials, per-user data, retention, pseudonymization, or aggregation concerns.
+  - type: textarea
+    id: specs
+    attributes:
+      label: Specs or docs likely affected
+      placeholder: "Example: specs/02-value-translation.md, specs/04-ui-and-views.md, ARCHITECTURE.md"
+  - type: checkboxes
+    id: constitution
+    attributes:
+      label: Constitution fit
+      options:
+        - label: This does not add per-developer rankings or surveillance affordances.
+        - label: This does not require hidden telemetry, phone-home behavior, or a SaaS account.
+        - label: I understand material behavior, data, methodology, API, or deployment changes need spec updates.

@@ -1,0 +1,107 @@
+# Deploy tagged releases to Azure with GitHub OIDC and azd.
+#
+# Required repository/environment secrets:
+# - AZURE_CLIENT_ID: Microsoft Entra application/client ID with federated credential trust for this repo/environment.
+# - AZURE_TENANT_ID: Microsoft Entra tenant ID.
+# - AZURE_SUBSCRIPTION_ID: Azure subscription ID for the azd environment.
+# - AZURE_ENV_NAME: azd environment name, for example "prod".
+# - AZURE_LOCATION: Azure region for the environment, for example "eastus".
+#
+# One-time setup:
+# 1. Create a Microsoft Entra app/service principal and add a federated credential for this repository's
+#    production environment/tag workflow (issuer: https://token.actions.githubusercontent.com).
+# 2. Grant the principal the Azure RBAC roles needed by `azd provision` and `azd deploy` on the target
+#    subscription/resource group.
+# 3. From a trusted operator workstation, run `azd auth login`, `azd env new <prod-env>`, set the runtime
+#    values documented in infra/bicep/README.md (Postgres/admin role passwords, GitHub collector token,
+#    dashboard auth, optional Entra/alert settings), then run `azd pipeline config` to configure GitHub
+#    OIDC and repository/environment secrets.
+# 4. Keep runtime secrets in azd/Key Vault or protected GitHub environment secrets; do not store Azure
+#    passwords in GitHub. This workflow uses only OIDC for Azure login.
+#
+# Image handling:
+# - release.yml publishes GHCR images tagged with the release tag and records digests in the release notes.
+# - This workflow checks out the immutable tag and lets azd build/package/deploy that source to the
+#   environment ACR. Operators who need prebuilt GHCR digest pinning can set SERVICE_WEB_IMAGE_NAME and
+#   SERVICE_COLLECTOR_IMAGE_NAME in the protected azd environment before approval.
+
+name: Deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-production-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_ENV_NAME: ${{ secrets.AZURE_ENV_NAME }}
+  AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+
+jobs:
+  deploy:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: pnpm
+
+      - name: Install hook prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Authenticate azd with OIDC
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --tenant-id "$AZURE_TENANT_ID" \
+            --federated-credential-provider github
+
+      - name: Select azd environment
+        run: |
+          azd env new "$AZURE_ENV_NAME" \
+            --location "$AZURE_LOCATION" \
+            --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --no-prompt
+
+      - name: Provision Azure resources
+        run: azd provision --no-prompt
+
+      - name: Deploy app
+        run: azd deploy --no-prompt
