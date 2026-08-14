@@ -10,6 +10,7 @@ RUN npm install --global "pnpm@${PNPM_VERSION}" --ignore-scripts --no-audit --no
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages packages
+COPY patches patches
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
