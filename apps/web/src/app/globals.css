@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── GitHub brand — LIGHT (see /DESIGN.md) ──────────────────────────── */
+    --font-sans: 'Mona Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'Mona Sans Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+    --background: 0 0% 100%;               /* #FFFFFF canvas */
+    --foreground: 140 10.7% 11%;           /* #191F1B ink — green-tinted near-black */
+    --card: 0 0% 100%;
+    --card-foreground: 140 10.7% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 10.7% 11%;
+    /* Tooltip — dark ink surface even in light mode (GitHub style); high contrast on charts */
+    --tooltip: 140 10.7% 11%;              /* #191F1B */
+    --tooltip-foreground: 0 0% 100%;
+    --primary: 136.5 88.8% 28%;            /* #08872B GitHub Green */
+    --primary-foreground: 0 0% 100%;       /* white on green */
+    --primary-hover: 144 77.6% 22.7%;      /* #0D6731 green-7 — solid darker hover (keeps AA) */
+    --secondary: 140 13% 95.5%;            /* #F2F5F3 gray-0 */
+    --secondary-foreground: 140 10.7% 11%;
+    --muted: 140 13% 95.5%;
+    --muted-foreground: 136.4 5.9% 36.7%;  /* #58635B gray-7 */
+    --accent: 140 13% 95.5%;
+    --accent-foreground: 140 10.7% 11%;
+    --destructive: 355.1 71.8% 47.3%;      /* #CF2230 red-5 */
+    --destructive-foreground: 0 0% 100%;
+    --success: 144 77.6% 22.7%;            /* #0D6731 green-7 — AA as text on light */
+    --border: 135 7.3% 78.4%;              /* #C4CCC6 gray-3 */
+    --input: 135 7.3% 78.4%;
+    --ring: 212.4 100% 50.6%;              /* #0377FF security blue — focus ring */
+    --link: 213.8 100% 41.8%;              /* #005DD5 — inline links (blue, not green) */
+    --radius: 0.5rem;                      /* → 6px buttons (rounded-md), 12px cards (rounded-xl) */
+
+    /* Chart semantic reservations — LIGHT (DESIGN.md §Data Visualization) */
+    --chart-value: 136.5 88.8% 28%;        /* #08872B green-6 — headline value (≥3:1 on white) */
+    --chart-copilot-1: 265.4 88.8% 57.8%;  /* #8534F3 purple — Copilot-attributed accent */
+    --chart-copilot-2: 235 75% 59.2%;      /* #4956E5 indigo — Copilot secondary */
+    --chart-baseline: 136.4 4.4% 48.8%;    /* #77827A gray-6 — non-Copilot baseline */
+    --chart-neutral: 135 7% 22.4%;         /* #353D37 gray-8 — dark neutral */
+
+    /* Categorical ramp — LIGHT (GitHub secondary scales, colorblind-aware order) */
+    --chart-1: 136.5 88.8% 28%;   /* green (green-6, ≥3:1 on white) */
+    --chart-2: 265.4 88.8% 57.8%; /* purple */
+    --chart-3: 212.4 100% 50.6%;  /* blue   */
+    --chart-4: 29.1 86.3% 45.9%;  /* orange */
+    --chart-5: 178.7 67% 41.6%;   /* teal   */
+    --chart-6: 322.8 86% 55.1%;   /* pink   */
+    --chart-7: 235 75% 59.2%;     /* indigo */
+    --chart-8: 78.7 72.1% 32.4%;  /* lime   */
+    --chart-9: 10.9 78.6% 49.4%;  /* coral  */
+    --chart-10: 39.5 100% 37.3%;  /* yellow */
+  }
+
+  .dark {
+    /* ── GitHub brand — DARK (product-adapted near-black; see /DESIGN.md) ── */
+    --background: 135 15.4% 5.1%;          /* #0B0F0C near-black, green-tinted */
+    --foreground: 140 13% 95.5%;           /* #F2F5F3 */
+    --card: 140 10.7% 11%;                 /* #191F1B elevated surface */
+    --card-foreground: 140 13% 95.5%;
+    --popover: 140 10.7% 11%;
+    --popover-foreground: 140 13% 95.5%;
+    --tooltip: 135 7% 22.4%;               /* #353D37 lifted */
+    --tooltip-foreground: 140 13% 95.5%;
+    --primary: 135.7 82.6% 52.7%;          /* #23EA57 bright green */
+    --primary-foreground: 135 15.4% 5.1%;  /* near-black on bright green */
+    --primary-hover: 136 85.4% 40.4%;      /* #0FBF3E green-5 — solid darker hover (near-black text stays AA) */
+    --secondary: 135 7% 22.4%;             /* #353D37 */
+    --secondary-foreground: 140 13% 95.5%;
+    --muted: 140 10.7% 11%;                /* #191F1B */
+    --muted-foreground: 133.3 6.6% 73.1%;  /* #B6BFB8 gray-4 */
+    --accent: 135 7% 22.4%;                /* #353D37 hover fill */
+    --accent-foreground: 140 13% 95.5%;
+    --destructive: 358.7 94.8% 62.5%;      /* #FA4549 red-4 */
+    --destructive-foreground: 140 13% 95.5%;
+    --success: 135.7 82.6% 52.7%;          /* #23EA57 */
+    --border: 135 7% 22.4%;                /* #353D37 gray-8 */
+    --input: 135 7% 22.4%;
+    --ring: 206.3 100% 68.6%;              /* #5FB9FF */
+    --link: 201.6 100% 77.6%;              /* #8DD6FF — inline links (dark) */
+
+    /* Chart semantic reservations — DARK */
+    --chart-value: 135.7 82.6% 52.7%;      /* #23EA57 green */
+    --chart-copilot-1: 270.2 100% 72%;     /* #B870FF purple */
+    --chart-copilot-2: 231.4 86.8% 76.3%;  /* #8E9DF7 indigo */
+    --chart-baseline: 136.4 5.5% 61%;      /* #96A199 gray-5 */
+    --chart-neutral: 137.1 8.4% 83.7%;     /* #D2D9D4 gray-2 */
+
+    /* Categorical ramp — DARK (brighter variants) */
+    --chart-1: 135.7 82.6% 52.7%; /* green  */
+    --chart-2: 270.2 100% 72%;    /* purple */
+    --chart-3: 206.3 100% 68.6%;  /* blue   */
+    --chart-4: 26.4 85.8% 58.4%;  /* orange */
+    --chart-5: 177 68.5% 53.9%;   /* teal   */
+    --chart-6: 320.9 100% 64.5%;  /* pink   */
+    --chart-7: 231.4 86.8% 76.3%; /* indigo */
+    --chart-8: 74.5 73.4% 51.4%;  /* lime   */
+    --chart-9: 13.1 100% 66.9%;   /* coral  */
+    --chart-10: 43.7 95.6% 55.5%; /* yellow */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+  }
+}
+
+@media print {
+  nav, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .print-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+  }
+}

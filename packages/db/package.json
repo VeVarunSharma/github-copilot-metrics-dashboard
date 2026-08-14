@@ -1,0 +1,55 @@
+{
+  "name": "@ghcp-dash/db",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microsoft/github-copilot-metrics-dashboard.git",
+    "directory": "packages/db"
+  },
+  "bugs": {
+    "url": "https://github.com/microsoft/github-copilot-metrics-dashboard/issues"
+  },
+  "homepage": "https://github.com/microsoft/github-copilot-metrics-dashboard#readme",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "drizzle"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx src/migrate.ts",
+    "bootstrap": "pnpm migrate && pnpm seed",
+    "seed": "tsx src/seed.ts",
+    "seed:demo": "tsx src/seed.ts --demo",
+    "seed:clear-demo": "tsx src/seed.ts --clear-demo",
+    "seed:reset": "tsx src/seed.ts --reset --yes",
+    "smoke:demo": "tsx src/smoke-demo.ts",
+    "studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "lint": "echo ok"
+  },
+  "dependencies": {
+    "@ghcp-dash/value": "workspace:*",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.7"
+  }
+}
