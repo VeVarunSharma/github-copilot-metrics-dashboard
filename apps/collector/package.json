@@ -31,10 +31,10 @@
     "@ghcp-dash/value": "workspace:*",
     "commander": "^12.1.0",
     "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.4",
     "parquetjs-lite": "^0.8.7",
     "pino": "^9.6.0",
-    "pino-pretty": "^13.0.0",
+    "pino-pretty": "^13.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
