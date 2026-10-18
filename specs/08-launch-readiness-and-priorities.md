@@ -108,6 +108,14 @@ A P0 OSS beta MUST include and link from the README as appropriate:
 - A README quickstart for both demo mode and real-data mode.
 - A real-account onboarding guide that explains the safe GitHub organization test flow: demo first, temporary classic PAT scopes, collector-only credential handling, config/token preflight checks, short-window backfill, and app verification steps.
 
+### Reusable demo and catalog packaging
+
+Reusable demo packaging MUST NOT imply production readiness or official catalog acceptance. The README MUST provide a customer story, end-to-end evaluation journey, five- and fifteen-minute presenter flows, reproducible setup, methodology limitations, adaptation guidance, support boundaries, and a workshop/pilot next action.
+
+Public screenshots and recordings MUST use synthetic data and MUST NOT contain customer identifiers, credentials, billing records, or environment-specific cloud resource links. Demo validation MUST distinguish synthetic seed/query coverage from real GitHub ingestion coverage.
+
+The project-owned [`accelerator.yaml`](../accelerator.yaml) MAY be adapted to a receiving catalog's schema. Submission MUST confirm the accountable owner, schema requirements, tested revision, independent presenter rehearsal, and prerelease security review. Missing evidence MUST remain explicit; metadata MUST NOT advertise unverified certification, production readiness, or implemented P2 capabilities.
+
 ### CI and release gates
 
 A P0 beta release MUST pass these gates:

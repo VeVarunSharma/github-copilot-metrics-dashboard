@@ -5,13 +5,13 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/microsoft/github-copilot-metrics-dashboard.git",
+    "url": "git+https://github.com/VeVarunSharma/github-copilot-metrics-dashboard.git",
     "directory": "apps/collector"
   },
   "bugs": {
-    "url": "https://github.com/microsoft/github-copilot-metrics-dashboard/issues"
+    "url": "https://github.com/VeVarunSharma/github-copilot-metrics-dashboard/issues"
   },
-  "homepage": "https://github.com/microsoft/github-copilot-metrics-dashboard#readme",
+  "homepage": "https://github.com/VeVarunSharma/github-copilot-metrics-dashboard#readme",
   "files": [
     "dist"
   ],

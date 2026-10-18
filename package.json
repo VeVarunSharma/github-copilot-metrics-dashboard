@@ -6,12 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/microsoft/github-copilot-metrics-dashboard.git"
+    "url": "git+https://github.com/VeVarunSharma/github-copilot-metrics-dashboard.git"
   },
   "bugs": {
-    "url": "https://github.com/microsoft/github-copilot-metrics-dashboard/issues"
+    "url": "https://github.com/VeVarunSharma/github-copilot-metrics-dashboard/issues"
   },
-  "homepage": "https://github.com/microsoft/github-copilot-metrics-dashboard#readme",
+  "homepage": "https://github.com/VeVarunSharma/github-copilot-metrics-dashboard#readme",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20.0.0"
@@ -22,7 +22,7 @@
     "dev": "pnpm -r --parallel --stream dev",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @ghcp-dash/value build && pnpm -r typecheck",
     "db:generate": "pnpm --filter @ghcp-dash/db generate",
     "db:migrate": "pnpm --filter @ghcp-dash/db migrate",
     "db:bootstrap": "pnpm db:migrate && pnpm db:seed",
@@ -39,7 +39,7 @@
     "smoke:migrate": "pnpm db:migrate",
     "smoke:collector-config": "pnpm --filter @ghcp-dash/collector check:config",
     "smoke:demo:verify": "pnpm --filter @ghcp-dash/db smoke:demo && pnpm --filter @ghcp-dash/web smoke:demo",
-    "smoke:demo": "pnpm smoke:migrate && pnpm db:seed:demo && pnpm smoke:demo:verify",
+    "smoke:demo": "pnpm --filter @ghcp-dash/value build && pnpm smoke:migrate && pnpm db:seed:demo && pnpm smoke:demo:verify",
     "smoke:p0": "pnpm smoke:collector-config && pnpm smoke:demo",
     "web": "pnpm --filter @ghcp-dash/web dev",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",

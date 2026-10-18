@@ -72,7 +72,7 @@ Start with a narrow range so token, org access, rate limits, and dashboard popul
 pnpm collect:backfill --from <yyyy-mm-dd> --to <yyyy-mm-dd> --concurrency 1
 ```
 
-Use completed UTC days. The collector is idempotent, so rerunning the same range is safe. Keep `--concurrency 1` during evaluation because concurrent dimension upserts are a known deadlock risk.
+Use completed UTC days. The collector is idempotent, so rerunning the same range is safe. The default concurrency is 4; dimension upserts are serialized with an advisory lock and an in-process gate. The examples use `--concurrency 1` to simplify initial troubleshooting or work with a constrained database pool, not because parallel ingestion is unsupported.
 
 After the backfill:
 

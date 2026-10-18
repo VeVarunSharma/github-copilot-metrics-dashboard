@@ -28,14 +28,12 @@ If you are making a material change to user-visible behavior, the data model, th
 ## Quick commands
 
 ```bash
-# Bootstrap (first run)
-pnpm install
-docker compose -f infra/docker-compose.yml up -d postgres
-pnpm db:migrate
-
 # Easiest demo path — no GitHub creds needed
-pnpm db:seed:demo                 # 90 days of synthetic data for "demo-org"
-pnpm --filter @ghcp-dash/web start
+pnpm install --frozen-lockfile
+cp .env.example .env              # only if .env does not already exist
+pnpm infra:up
+pnpm smoke:demo                   # builds value, migrates, seeds, verifies
+pnpm web                         # dev server; start requires a prior web build
 # → open http://localhost:3000
 
 # Real-data path
@@ -43,7 +41,7 @@ pnpm --filter @ghcp-dash/web start
 pnpm collect
 
 # Daily commands
-pnpm -r typecheck                 # ALWAYS run before claiming work is done
+pnpm typecheck                    # builds value declarations, then workspace typecheck
 pnpm -r lint                      # ESLint on apps/web; echo-ok on packages
 pnpm -r test                      # 52 tests across 5 packages
 pnpm -r build                     # tsc for packages, next build for web

@@ -8,6 +8,14 @@
 
 ---
 
+## Reuse and evaluation boundary
+
+The [README](./README.md) is the entry point for a reusable customer demonstration: credential-free setup, customer journey, presenter scripts, methodology caveats, and a workshop/pilot template. [accelerator.yaml](./accelerator.yaml) describes this OSS beta using project-owned draft metadata; it is not an official catalog schema or acceptance claim.
+
+The demo path seeds synthetic silver/gold data directly; it does not exercise GitHub API access or validate customer source availability. Root `pnpm smoke:demo` builds the value package before migrations/seed/query checks, and root `pnpm typecheck` builds its declarations before recursive checking, including when called by release validation. No new runtime component, data source, deployment topology, or value formula is introduced by this packaging.
+
+Public captures use synthetic data only. Customer evaluation requires collector-only credentials, approved data handling, and appropriate access controls; production readiness remains governed by spec 08, not by the presence of demo or deployment assets.
+
 ## 1. Project Structure
 
 ```
