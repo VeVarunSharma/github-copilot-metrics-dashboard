@@ -104,7 +104,7 @@ engagement:
   call_to_action: Agree a sponsor, decision, data scope, and review date
 submission:
   official_schema: null
-  evidence_revision: null
+  evidence_revision: 535ad0765afac86ee1d2d4c15374b3f368af9e2b
   pending:
     - Confirm accountable submission owner and receiving catalog schema
     - Independent presenter rehearsal

@@ -341,8 +341,22 @@ Copy this brief into your engagement's approved collaboration space:
 
 The [accelerator.yaml](./accelerator.yaml) is a project-owned draft, **not** a validated official Accelerator Catalog schema. Confirm the receiving catalog's requirements and accountable submission owner before adapting/submitting it.
 
-- [ ] Record a tested revision and clean-install demo results on a supported Node version.
-- [ ] Verify typecheck, lint, tests, build, migrations, collector config, and demo smoke.
+### Local validation evidence
+
+Rehearsed on **2026-10-18**, revision `535ad0765afac86ee1d2d4c15374b3f368af9e2b`, with Node **22.23.3**, pnpm **10.33.0**, and a fresh PostgreSQL **16** Compose database:
+
+- Frozen dependency installation, root typecheck, workspace lint, and workspace build passed.
+- **141 tests passed; one pre-existing test remained skipped**, including successful database-backed dimension-concurrency tests.
+- Fresh migrations, 90-day demo seed, demo fact/query smoke, and placeholder-only collector configuration smoke passed.
+- Both web and collector Docker build smoke commands passed (Node 20 Alpine images).
+- Production `/api/health` reported database readiness `ok`; all seven P0 routes returned HTTP 200.
+- `pnpm audit --prod --audit-level=low` reported **no known vulnerabilities**, without the previous CVE waiver.
+- Project metadata/relative asset links resolved and changed-file secret scans found no secrets.
+
+This is local synthetic-data evidence, not a GitHub Actions result, live customer ingestion test, Azure deployment certification, full-history security audit, or production endorsement. Installation still reports an existing ts-rest/Next peer-range warning and skipped dependency lifecycle scripts; the checks above passed without relaxing those safeguards. Revalidate on the revision you intend to share.
+
+- [x] Record a tested revision and clean-install/demo results (see local evidence above).
+- [x] Verify typecheck, lint, tests, build, migrations, collector config, and demo smoke locally.
 - [ ] Rehearse the script with an SE/CSA who did not author the build.
 - [ ] Review screenshots; publish a captioned synthetic-only recording if required.
 - [ ] Complete the [security prerelease checklist](./docs/security-prerelease-checklist.md), including history review, credential rotation, and repository settings.
