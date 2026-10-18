@@ -75,6 +75,12 @@ assets:
   security_checklist: docs/security-prerelease-checklist.md
   sample_data: packages/db/src/seed.ts
   screenshot_instructions: docs/images/README.md
+  overview_screenshot: docs/images/overview.png
+  cost_screenshot: docs/images/cost.png
+  adoption_screenshot: docs/images/adoption.png
+  code_generation_screenshot: docs/images/code-generation.png
+  pull_requests_screenshot: docs/images/pull-requests.png
+  calculator_screenshot: docs/images/calculator.png
   video: null
 security:
   public_assets: Synthetic data only

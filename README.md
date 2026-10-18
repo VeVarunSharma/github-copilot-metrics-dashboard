@@ -76,14 +76,13 @@ Use this index when evaluating the production self-host path. These are P1 harde
 
 ## Screenshots
 
-Screenshots are generated from the demo dataset. See [`docs/images/README.md`](./docs/images/README.md)
-for the one-command capture procedure. Once generated, they render here:
+Screenshots below use synthetic `demo-org` data, captured on 2026-10-18 in local open-auth mode. Values are illustrative estimates, not customer results. See [`docs/images/README.md`](./docs/images/README.md) to regenerate all six demo views.
 
-<!-- Uncomment after running the capture procedure in docs/images/README.md
 ![Overview](./docs/images/overview.png)
 ![Cost & Spend](./docs/images/cost.png)
 ![Adoption](./docs/images/adoption.png)
--->
+
+Additional captures: [Code Generation](./docs/images/code-generation.png), [Pull Requests](./docs/images/pull-requests.png), and [Calculator](./docs/images/calculator.png).
 
 ## Architecture
 
@@ -245,6 +244,7 @@ Future issue/ticket, team, tracker, Fabric/OneLake, GHAS/Security, and forecasti
 ### Presenter preflight
 
 - Use a dedicated synthetic-only database and run `pnpm smoke:demo`.
+- Synthetic seeding does not record real ingestion runs; `/api/health` can report freshness as `unknown`. This does not validate the GitHub ingestion pipeline.
 - Open the P0 views, select `demo-org`, and confirm the reporting range overlaps seeded dates.
 - Keep the same organization and dates throughout. Check charts finish rendering before presenting.
 - Show the auth-disabled warning honestly in local open mode. Do not imply that the demo configuration is suitable for customer hosting.
