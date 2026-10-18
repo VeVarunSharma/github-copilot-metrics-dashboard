@@ -13,5 +13,5 @@ Run this checklist before making Copilot Metrics Dashboard public.
 - Review and remediate all verified findings before publishing.
 - Rotate any token, PAT, database credential, webhook secret, or cloud key that was ever committed, even if it was later removed.
 - Confirm `.env` and local environment variants are gitignored and have never been committed.
-- Verify GitHub secret scanning and push protection are enabled for `microsoft/github-copilot-metrics-dashboard`.
+- Verify GitHub secret scanning and push protection are enabled for the repository being shared (currently `VeVarunSharma/github-copilot-metrics-dashboard`); forks must verify their own settings.
 - Confirm public examples, logs, screenshots, issues, and fixtures use synthetic data only.

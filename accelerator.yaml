@@ -1,0 +1,112 @@
+# Project-owned draft; map to the receiving catalog's official schema before submission.
+id: github-copilot-metrics-dashboard
+name: GitHub Copilot Metrics Dashboard
+summary: >-
+  Customer-hosted Copilot adoption, spend, and PR evidence with transparent,
+  configurable business-value estimates.
+repository: https://github.com/VeVarunSharma/github-copilot-metrics-dashboard
+license: MIT
+target_customer: Reusable / cross-industry
+industries:
+  - Cross-industry software engineering
+personas:
+  primary: Engineering leader / developer productivity lead
+  supporting:
+    - Platform engineer
+    - Finance partner
+    - Solution engineer / cloud solution architect
+    - Account team
+ownership:
+  project_contact: https://github.com/VeVarunSharma/github-copilot-metrics-dashboard/issues
+  accountable_submission_owner: null
+  support: SUPPORT.md
+  security_reporting: SECURITY.md
+  support_model: Open-source, best effort; no commercial SLA
+readiness:
+  product_stage: P0 OSS Beta
+  intended_use: Synthetic demo and approved org-scope evaluation
+  catalog_schema_validated: false
+  catalog_accepted: false
+  production_ready: false
+  release_gates: specs/08-launch-readiness-and-priorities.md
+customer_problem: >-
+  Engineering and finance stakeholders need a shared, auditable view of
+  Copilot adoption, spend, and estimated value to choose their next action.
+outcome: >-
+  Agree assumptions, inspect supporting evidence, and select an adoption
+  intervention or scoped pilot without claiming causal productivity gains.
+capabilities:
+  - Adoption and activity reporting
+  - Copilot-authored and reviewed PR signals
+  - Seat, premium-request, and AI-credit spend
+  - Activity, Output, and Delivery value estimators
+  - Standalone what-if calculator
+  - Credential-free synthetic demo
+technology:
+  - TypeScript / Node.js
+  - Next.js
+  - PostgreSQL / Drizzle ORM
+  - ts-rest / Zod
+  - Azure Container Apps
+  - Azure Database for PostgreSQL Flexible Server
+prerequisites:
+  demo:
+    - Node.js 20 or 22
+    - pnpm 10.33.0
+    - Docker Compose
+    - Dedicated local demo database
+  real_data:
+    - Approved GitHub organization access
+    - Collector-only classic PAT with required scopes
+    - Billing permission for complete spend reporting
+  azure:
+    - Approved subscription and deployment permissions
+    - Azure CLI and Azure Developer CLI
+    - Customer-approved identity, secrets, networking, and budget
+assets:
+  readme: README.md
+  architecture: ARCHITECTURE.md
+  demo_script: README.md#demo-scripts
+  reuse_guide: README.md#reuse-and-customization
+  pilot_template: README.md#customer-engagement-and-pilot-template
+  onboarding: docs/onboarding.md
+  deployment: infra/bicep/README.md
+  operations: docs/production-runbook.md
+  security_checklist: docs/security-prerelease-checklist.md
+  sample_data: packages/db/src/seed.ts
+  screenshot_instructions: docs/images/README.md
+  overview_screenshot: docs/images/overview.png
+  cost_screenshot: docs/images/cost.png
+  adoption_screenshot: docs/images/adoption.png
+  code_generation_screenshot: docs/images/code-generation.png
+  pull_requests_screenshot: docs/images/pull-requests.png
+  calculator_screenshot: docs/images/calculator.png
+  video: null
+security:
+  public_assets: Synthetic data only
+  github_credentials: Collector only; never web deployment or browser
+  dashboard_identity: Trusted upstream identity recommended for customer hosting
+  individual_rankings: Prohibited
+  prerelease_security_review: Required before sharing
+limitations:
+  - Estimates depend on explicit assumptions and are not causal proof
+  - Customer API history depends on source availability
+  - Incomplete billing access limits spend and ROI interpretation
+  - Default headline blend is Delivery only
+  - Settings changes require a collector-owned gold rebuild
+  - Enterprise scope is preview
+  - Fabric and OneLake integration is planned, not implemented
+  - Production self-hosting remains gated by P1
+engagement:
+  offer: Copilot Value Evidence Workshop
+  pilot_scope: One approved organization and available reporting window
+  success: Reproducible evidence and a stakeholder-approved next action
+  call_to_action: Agree a sponsor, decision, data scope, and review date
+submission:
+  official_schema: null
+  evidence_revision: 535ad0765afac86ee1d2d4c15374b3f368af9e2b
+  pending:
+    - Confirm accountable submission owner and receiving catalog schema
+    - Independent presenter rehearsal
+    - Prerelease security review and repository settings verification
+    - Captioned demo recording if required by the receiving catalog

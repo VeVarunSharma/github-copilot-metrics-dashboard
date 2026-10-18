@@ -32,7 +32,7 @@ Path-scoped rules for the collector. Read first: [`AGENTS.md`](../../AGENTS.md),
 
 ## Concurrency
 
-- **Default concurrency MAY be 4**, but the user MUST be able to pass `--concurrency 1` to serialize for now. Known deadlock with concurrent dim upserts; do not regress.
+- **Default concurrency is 4**. Dimension upserts MUST retain the transaction-scoped advisory lock and in-process gate in `src/silver/common.ts`. Preserve `--concurrency 1` for troubleshooting and constrained database pools.
 
 ## When adding a new ingestor
 
