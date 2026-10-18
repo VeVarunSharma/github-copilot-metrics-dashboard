@@ -1,7 +1,3 @@
 packages:
   - "apps/*"
   - "packages/*"
-
-# Backport nanoid 3.3.18 until that release reaches the enterprise mirror.
-patchedDependencies:
-  nanoid@3.3.17: patches/nanoid@3.3.17.patch

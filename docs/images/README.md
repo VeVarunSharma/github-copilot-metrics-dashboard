@@ -29,6 +29,19 @@ so exact pixels and totals may vary between captures.
 
 3. Inspect the resulting PNGs for rendering completion, selected org/dates, synthetic-data labels, and sensitive browser/environment details before committing. The root README embeds the Overview, Cost & Spend, and Adoption captures.
 
+If Chromium is already installed, the same capture can be made without installing a package:
+
+```bash
+for view in overview cost adoption code-generation pull-requests calculator; do
+  chromium --headless --disable-gpu --disable-dev-shm-usage \
+    --window-size=1440,1100 --virtual-time-budget=8000 \
+    --screenshot="$PWD/docs/images/${view}.png" \
+    "http://localhost:3000/${view}?orgId=demo-org"
+done
+```
+
+Run from the checkout root as a normal, sandboxed desktop user. Isolated CI containers running as root may require `--no-sandbox`; use that only in a disposable synthetic-data capture environment, never for browsing customer content.
+
 Do not hide security or freshness warnings for marketing. Keep the auth-disabled banner visible in open-mode captures. If using protected mode, authenticate normally before capture. Never capture customer data, tokens, cloud resource identifiers, or browser profile information.
 
 ## Recording and acceptance
